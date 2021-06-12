@@ -33,6 +33,12 @@ jobs:
           toolchain: nightly
           override: true
 
+      - name: Install LLVM tools
+        run: rustup component add llvm-tools-preview
+
+      - name: Install grcov
+        run: cargo install grcov
+        
       - name: Test
         run: cargo test
 
