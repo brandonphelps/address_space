@@ -73,13 +73,12 @@ impl Section {
 /// @brief performs a merge of two record sections.
 /// by createing a third section of contiguious memory regions.
 /// returns None if the two regions aren't neighbors or are overlapping. 
-fn merge_sections(sec1: &Section, sec2: &Section) -> Option<Section> {
-
+fn merge_sections(sec1: &Section, sec2: &Section) -> Result<Section, String> {
     let res = None;
 
     // overlapping sections.
     if sec1.start_addr == sec2.start_addr {
-        return None;
+        return Err("Overlapping addresses".into());
     }
 
     let mut start_addr = 0;
@@ -89,7 +88,6 @@ fn merge_sections(sec1: &Section, sec2: &Section) -> Option<Section> {
     } else if sec1.start_addr > sec2.start_addr {
         start_addr = sec2.start_addr;
     }
-
     
     if (sec1.start_addr as usize + sec1.data.len()) == sec2.start_addr as usize {
 
@@ -114,7 +112,7 @@ fn merge_sections(sec1: &Section, sec2: &Section) -> Option<Section> {
         }
         Some(new_section)
     } else {
-        res
+	Err("Non contigous sections".into())
     }
 }
 
@@ -260,9 +258,8 @@ mod tests  {
 	let section_two = Section::new(5, vec![6,7,8,9]);
 	let section_three = merge_sections(&section_one, &section_two);
 	let section_four = merge_sections(&section_two, &section_one);
-	assert!(section_three.is_some());
-	assert!(section_four.is_some());
+	assert!(section_three.is_ok());
+	assert!(section_four.is_ok());
 	assert_eq!(section_three.unwrap().data, section_four.unwrap().data);
     }
-
 }
