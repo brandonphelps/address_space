@@ -59,12 +59,12 @@ impl Section {
     /// with the values of the second, must be adjacent segments.
     fn merge_with(&mut self, sec2: Self) -> bool {
         match merge_sections(&self, &sec2) {
-            Some(p) => {
+            Ok(p) => {
                 self.start_addr = p.start_addr;
                 self.data = p.data;
                 true
             }
-            None => false,
+            Err(f) => false,
         }
     }
 }
@@ -74,23 +74,25 @@ impl Section {
 /// by createing a third section of contiguious memory regions.
 /// returns None if the two regions aren't neighbors or are overlapping. 
 fn merge_sections(sec1: &Section, sec2: &Section) -> Result<Section, String> {
-    let res = None;
-
     // overlapping sections.
     if sec1.start_addr == sec2.start_addr {
         return Err("Overlapping addresses".into());
     }
 
     let mut start_addr = 0;
-
+    let mut max_addr = 0;
+    let mut min_length = 0;
     if sec1.start_addr < sec2.start_addr {
         start_addr = sec1.start_addr;
+	min_length = sec1.data.len();
+	max_addr = sec2.start_addr;
     } else if sec1.start_addr > sec2.start_addr {
         start_addr = sec2.start_addr;
+	min_length = sec2.data.len();
+	max_addr = sec1.start_addr;	
     }
     
-    if (sec1.start_addr as usize + sec1.data.len()) == sec2.start_addr as usize {
-
+    if (start_addr as usize + min_length) == max_addr as usize {
         let mut new_section = Section { start_addr: start_addr, data: Vec::new() };
         
         // need to order the data properly.
@@ -110,8 +112,9 @@ fn merge_sections(sec1: &Section, sec2: &Section) -> Result<Section, String> {
                 new_section.data.push(*i);
             }
         }
-        Some(new_section)
+        Ok(new_section)
     } else {
+	println!("non contigious sections");
 	Err("Non contigous sections".into())
     }
 }
@@ -246,7 +249,7 @@ mod tests  {
 	let section_one = Section::new(0, vec![1,2,3,4,5]);
 	let section_two = Section::new(5, vec![6,7,8,9]);
 	let section_three = merge_sections(&section_one, &section_two);
-	assert!(section_three.is_some());
+	assert!(section_three.is_ok());
 	let r = section_three.unwrap();
 	assert_eq!(r.data, vec![1,2,3,4,5,6,7,8,9]);
 	assert_eq!(r.start_addr, 0);
@@ -258,6 +261,7 @@ mod tests  {
 	let section_two = Section::new(5, vec![6,7,8,9]);
 	let section_three = merge_sections(&section_one, &section_two);
 	let section_four = merge_sections(&section_two, &section_one);
+
 	assert!(section_three.is_ok());
 	assert!(section_four.is_ok());
 	assert_eq!(section_three.unwrap().data, section_four.unwrap().data);
