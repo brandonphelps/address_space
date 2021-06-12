@@ -64,7 +64,7 @@ impl Section {
                 self.data = p.data;
                 true
             }
-            Err(f) => false,
+            Err(_f) => false,
         }
     }
 }
@@ -199,7 +199,7 @@ impl AddressSpace {
             .binary_search_by(|x| x.start_addr.cmp(&section.start_addr))
         {
             Err(s) => self.data.insert(s, section),
-            Ok(f) => (),
+            Ok(_f) => (),
         }
     }
 
@@ -230,7 +230,7 @@ impl AddressSpace {
         self.consolidate();
     }
 
-    pub fn write_data(&mut self, addr: u32, data: &Vec<u8>) {}
+    pub fn write_data(&mut self, _addr: u32, _data: &Vec<u8>) {}
 
     pub fn get_bytes(&self, addr: u32, size: usize) -> Option<Vec<u8>> {
         match self.find_section(addr) {
@@ -266,4 +266,6 @@ mod tests  {
 	assert!(section_four.is_ok());
 	assert_eq!(section_three.unwrap().data, section_four.unwrap().data);
     }
+
+    
 }
