@@ -136,6 +136,8 @@ mod tests  {
 	assert_eq!(r.start_addr, 0);
     }
 
-    
-
+    #[test]
+    fn what_happens_on_test_failure() {
+	assert_eq!(1,2)
+    }
 }
