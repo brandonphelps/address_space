@@ -31,6 +31,10 @@ impl Section {
         self.data.len()
     }
 
+    pub fn data(&self) -> &Vec<u8> {
+        &self.data
+    }
+
     pub fn read_data(&self, addr: u32, size: usize) -> Option<Vec<u8>> {
         let mut result = Vec::new();
         // bounds checking.
