@@ -22,6 +22,7 @@ jobs:
         run: cargo test --verbose
 
   grcov:
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
