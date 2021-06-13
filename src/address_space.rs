@@ -267,5 +267,45 @@ mod tests  {
 	assert_eq!(section_three.unwrap().data, section_four.unwrap().data);
     }
 
-    
+    #[test]
+    #[test]
+    fn neighbor_find_empty() {
+        let sec = Section {
+            start_addr: 0,
+            data: vec![2, 3, 4, 5],
+        };
+
+        let address_space = AddressSpace {
+            data: Vec::new()
+        };
+
+
+        assert_eq!(address_space.find_neighboring_section(&sec), None);
+
+    }
+
+    #[test]
+    fn neighbor_find_one() {
+        let sec = Section {
+            start_addr: 0,
+            data: vec![2, 3, 4, 5],
+        };
+        let sec_two = Section {
+            start_addr: 4,
+            data: vec![2, 3, 4, 5],
+        };
+
+        let mut map = Vec::new();
+        map.push(sec_two);
+        
+        let address_space = AddressSpace {
+            data: map,
+        };
+
+	assert!(address_space.find_neighboring_section(&sec).is_some());
+	let neighbor_sec = address_space.find_neighboring_section(&sec).unwrap();
+
+	assert_eq!(neighbor_sec.start_addr, 4);
+	assert_eq!(neighbor_sec.data, vec![2,3,4,5]);
+    }
 }
