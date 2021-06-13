@@ -130,6 +130,35 @@ impl AddressSpace {
         }
     }
 
+    pub fn update(&mut self, address: u32, data: &Vec<u8>) {
+        todo!()
+    }
+
+    pub fn undefine(&mut self, address: u32, size: u32) {
+        todo!() // is this useful? 
+    }
+
+    pub fn is_defined(&self, address: u32, size: u32) -> bool {
+        todo!()
+    }
+
+    pub fn read(&self, address: u32) -> Result<u8, String> {
+        todo!()
+    }
+
+    pub fn read_vec(&self, address: u32, size: u32) -> Result<Vec<u8>, String> {
+        todo!()
+    }
+
+    /// Returns the total number of stored values.
+    pub fn size(&self) -> usize {
+        self.data.iter().map(|x| x.data.len()).sum()
+    }
+
+    pub fn segement_count(&self) -> usize {
+        self.data.len()
+    }
+    
     // todo: can we merge these and the second one?
     fn find_section(&self, addr: u32) -> Option<&Section> {
         for i in self.data.iter() {
@@ -232,8 +261,6 @@ impl AddressSpace {
         }
         self.consolidate();
     }
-
-    pub fn write_data(&mut self, _addr: u32, _data: &Vec<u8>) { todo!() }
 
     pub fn get_bytes(&self, addr: u32, size: usize) -> Option<Vec<u8>> {
         match self.find_section(addr) {
