@@ -10,7 +10,7 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
 
     steps:
@@ -24,20 +24,30 @@ jobs:
   grcov:
     needs: test
     runs-on: ubuntu-latest
+    env:
+      RUSTFLAGS: "-Zinstrument-coverage"
+      LLVM_PROFILE_FILE: "coverage-pid%p.profraw" 
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: nightly
           override: true
-      - uses: actions-rs/cargo@v1
+
+      - name: Install LLVM tools
+        run: rustup component add llvm-tools-preview
+
+      - name: Install grcov
+        run: cargo install grcov
+        
+      - name: Test
+        run: cargo test
+
+      - name: grcov builder
+        run: grcov . --binary-path target -s . -t html --branch --ignore-not-existing -o ./coverage
+
+      - uses: actions/upload-artifact@v2
         with:
-          command: test
-          args: --all-features --no-fail-fast
-        env:
-          CARGO_INCREMENTAL: '0'
-          RUSTFLAGS: '-Zprofile -Ccodegen-units=1 -Copt-level=0 -Clink-dead-code -Coverflow-checks=off -Zpanic_abort_tests -Cpanic=abort -Zinstrument-coverage'
-          LLVM_PROFILE_FILE: 'tester-%p-%m.profraw'
-                
-      - uses: actions-rs/grcov@v0.1
-                  
+          name: coverage-files
+          path: coverage
+    
