@@ -119,7 +119,6 @@ fn merge_sections(sec1: &Section, sec2: &Section) -> Result<Section, String> {
     }
 }
 
-
 pub struct AddressSpace {
     data: Vec<Section>,
 }
@@ -234,7 +233,7 @@ impl AddressSpace {
         self.consolidate();
     }
 
-    pub fn write_data(&mut self, _addr: u32, _data: &Vec<u8>) {}
+    pub fn write_data(&mut self, _addr: u32, _data: &Vec<u8>) { todo!() }
 
     pub fn get_bytes(&self, addr: u32, size: usize) -> Option<Vec<u8>> {
         match self.find_section(addr) {
@@ -244,6 +243,32 @@ impl AddressSpace {
     }
 }
 
+
+/// Section iterator for an AddressSpace
+pub struct SectionIter {
+    iter: ::std::vec::IntoIter<Section>,
+}
+
+impl IntoIterator for AddressSpace {
+    type Item = Section;
+    type IntoIter = SectionIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        SectionIter {
+            iter: self.data.into_iter(),
+        }
+    }
+}
+
+/// iterator over the section,
+/// will return in address incrementing start address order.
+impl Iterator for SectionIter {
+    type Item = Section;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next()
+    }
+}
 
 #[cfg(test)]
 mod tests  {
@@ -379,4 +404,77 @@ mod tests  {
 	assert_eq!(address_space.data.len(), 1);
 	assert_eq!(address_space.data[0].data, vec![2,3,4,5,2,3,4,5]);
     }
+
+
+    #[test]
+    fn test_get_bytes() {
+        let sec = Section {
+            start_addr: 0,
+            data: vec![2, 3, 4, 5],
+        };
+        let sec_two = Section {
+            start_addr: 4,
+            data: vec![2, 3, 4, 5],
+        };
+
+        let mut map = Vec::new();
+	map.push(sec);
+        map.push(sec_two);
+        let mut address_space = AddressSpace {
+            data: map,
+        };
+	address_space.consolidate();
+
+	let bytes = address_space.get_bytes(3, 4).unwrap();
+	assert_eq!(bytes, vec![5,2,3,4]);
+    }
+
+    #[test]
+    fn test_get_bytes_none() {
+        let address_space = AddressSpace {
+            data: Vec::new(),
+        };
+
+	let bytes = address_space.get_bytes(3, 4);
+	assert!(bytes.is_none());
+    }
+
+    #[test]
+    fn record_write_data()  {
+        let mut sec = Section {
+            start_addr: 100,
+            data: vec![1, 2, 3, 4, 5, 6],
+        };
+        sec.write_data(100, 2);
+        sec.write_data(101, 3);
+        sec.write_data(103, 3);
+
+        assert_eq!(sec.data[0], 2);
+        assert_eq!(sec.data[1], 3);
+    }
+
+    #[test]
+    fn record_iterator() {
+        let mut address_space = AddressSpace {
+            data: Vec::new(),
+        };
+        address_space.set_data(1, 10);
+        address_space.set_data(0, 32);
+        address_space.set_data(3, 2);
+
+        address_space.set_data(100, 30);
+        address_space.set_data(400, 20);
+
+        let expected_values = vec![
+            (0, vec![32, 10]),
+            (3, vec![2]),
+            (100, vec![30]),
+            (400, vec![20]),
+        ];
+        for (index, i) in address_space.into_iter().enumerate() {
+            assert_eq!(expected_values[index].0, i.start_addr);
+            assert_eq!(expected_values[index].1, i.data);
+        }
+    }
+
 }
