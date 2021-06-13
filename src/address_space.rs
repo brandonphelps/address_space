@@ -160,6 +160,10 @@ impl AddressSpace {
         return None;
     }
 
+    /// @brief for given section, returns the section that follows after
+    /// it so long as their end and start address are equal.
+    /// Section's aren't neighbors if they aren't contigious or there is a
+    /// hole between the two sections.
     fn find_neighboring_section(&self, sec: &Section) -> Option<&Section> {
         for i in self.data.iter() {
             if sec.end_addr() == i.start_addr {
@@ -169,7 +173,7 @@ impl AddressSpace {
         return None;
     }
 
-    /// @breif searches for neighbors and joins them together.
+    /// @brief searches for neighbors and joins them together.
     /// will only perform a single neighbor search and join.
     fn consolidate(&mut self) {
         let mut has_neighbor_index = None;
@@ -278,10 +282,7 @@ mod tests  {
         let address_space = AddressSpace {
             data: Vec::new()
         };
-
-
         assert_eq!(address_space.find_neighboring_section(&sec), None);
-
     }
 
     #[test]
@@ -307,5 +308,75 @@ mod tests  {
 
 	assert_eq!(neighbor_sec.start_addr, 4);
 	assert_eq!(neighbor_sec.data, vec![2,3,4,5]);
+    }
+
+    #[test]
+    fn neighbor_find_not_contig() {
+	// length of section is 3, should thus
+	// not have a neighbor.
+        let sec = Section {
+            start_addr: 0,
+            data: vec![2, 3, 4],
+        };
+        let sec_two = Section {
+            start_addr: 4,
+            data: vec![2, 3, 4, 5],
+        };
+
+        let mut map = Vec::new();
+        map.push(sec_two);
+
+        let address_space = AddressSpace {
+            data: map,
+        };
+
+	assert!(address_space.find_neighboring_section(&sec).is_none());
+    }
+
+    #[test]
+    fn test_conslidate_hole() {
+        let sec = Section {
+            start_addr: 0,
+            data: vec![2, 3, 4],
+        };
+        let sec_two = Section {
+            start_addr: 4,
+            data: vec![2, 3, 4, 5],
+        };
+
+        let mut map = Vec::new();
+	map.push(sec);
+        map.push(sec_two);
+        let mut address_space = AddressSpace {
+            data: map,
+        };
+
+	assert_eq!(address_space.data.len(), 2);
+	address_space.consolidate();
+	assert_eq!(address_space.data.len(), 2);
+    }
+
+    #[test]
+    fn test_conslidate() {
+        let sec = Section {
+            start_addr: 0,
+            data: vec![2, 3, 4, 5],
+        };
+        let sec_two = Section {
+            start_addr: 4,
+            data: vec![2, 3, 4, 5],
+        };
+
+        let mut map = Vec::new();
+	map.push(sec);
+        map.push(sec_two);
+        let mut address_space = AddressSpace {
+            data: map,
+        };
+
+	assert_eq!(address_space.data.len(), 2);
+	address_space.consolidate();
+	assert_eq!(address_space.data.len(), 1);
+	assert_eq!(address_space.data[0].data, vec![2,3,4,5,2,3,4,5]);
     }
 }
