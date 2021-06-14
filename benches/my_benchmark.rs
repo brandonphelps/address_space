@@ -5,49 +5,25 @@ use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
 use address_space::{AddressSpace, Section};
 
-// fn fibonacci(n: u64) -> u64 {
-//     match n {
-// 	0 => 1,
-// 	1 => 1,
-// 	n => fibonacci(n-1) + fibonacci(n-2),
-//     }
-// }
+use rand::prelude::*;
 
-fn fibonacci(n: u64) -> u64 {
-    let mut p = FibStorage::new();
-    p.compute(n)
-}
 
-struct FibStorage {
-    data: Vec<u64>
-}
 
-impl FibStorage {
-    pub fn new() -> Self {
-	let mut p = Vec::new();
-	p.push(1);
-	p.push(1);
-	Self {
-	    data: p
-	}
-    }
+fn address_add_many(entry_count: u32) {
+    let mut address_space = AddressSpace::new();
 
-    pub fn compute(&mut self, n: u64) -> u64 {
-	if (self.data.len() as u64) <= n {
-	    let k = self.compute(n-1);
-	    let k2 = self.compute(n-2);
-	    self.data.push(k + k2);
 
-	}
-	self.data[n as usize]
+    let mut rng = StdRng::seed_from_u64(100); // rand::thread_rng();
+
+    for i in 0..entry_count  {
+        let addr: u32 = rng.gen(); 
+        let data: u8 = rng.gen();
+        address_space.update_byte(addr, data);
     }
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
-    c.bench_function("fib 20", |b| b.iter(|| fibonacci(black_box(20))));
-    c.bench_function("fib 21", |b| b.iter(|| fibonacci(black_box(21))));
-    c.bench_function("fib 22", |b| b.iter(|| fibonacci(black_box(22))));    
-
+    c.bench_function("address many", |b| b.iter(|| address_add_many(black_box(1_000))));
 }
 
 criterion_group!(benches, criterion_benchmark);
