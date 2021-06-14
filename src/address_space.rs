@@ -31,7 +31,11 @@ impl Section {
         self.data.len()
     }
 
-    pub fn read_data(&self, addr: u32, size: usize) -> Option<Vec<u8>> {
+    pub fn data(&self) -> &Vec<u8> {
+        &self.data
+    }
+
+    pub fn read_bytes(&self, addr: u32, size: usize) -> Option<Vec<u8>> {
         let mut result = Vec::new();
         // bounds checking.
         if size > self.data.len() {
@@ -114,7 +118,6 @@ fn merge_sections(sec1: &Section, sec2: &Section) -> Result<Section, String> {
         }
         Ok(new_section)
     } else {
-	println!("non contigious sections");
 	Err("Non contigous sections".into())
     }
 }
@@ -130,6 +133,81 @@ impl AddressSpace {
         }
     }
 
+    pub fn update_byte(&mut self, addr: u32, data: u8) {
+        let section = self.find_section_mut(addr);
+        if section.is_some() {
+            section.unwrap().write_data(addr, data);
+        } else {
+            // quick test of neighboring data.
+            let mut skip_none = false;
+            if addr > 1 {
+                let sect2 = self.find_section_mut(addr - 1);
+                if sect2.is_some() {
+                    sect2.unwrap().push_data(data);
+                    skip_none = true;
+                }
+            }
+            if !skip_none {
+                let new_section = Section {
+                    start_addr: addr,
+                    data: vec![data],
+                };
+                self.insert_section(new_section);
+                // Two consolidates due to adding an entry into the middle of two sections.
+                self.consolidate();
+            }
+        }
+        self.consolidate();
+    }
+
+    pub fn update(&mut self, address: u32, data: &Vec<u8>) {
+	for (index, i) in data.iter().enumerate() {
+	    self.update_byte(address + index as u32, *i);
+	}
+    }
+
+    pub fn undefine(&mut self, address: u32, size: usize) {
+        todo!() // is this useful? 
+    }
+
+    pub fn is_defined(&self, address: u32, size: usize) -> bool {
+	match self.find_section(address) {
+	    Some(sec) => {
+		match sec.read_bytes(address, size)  {
+		    Some(r) => { true },
+		    None => { false },
+		}
+	    },
+	    None => { false }
+	}
+    }
+
+    /// Returns the byte for the given address, else None if no data is found at address
+    pub fn read(&self, address: u32) -> Option<u8> {
+	let vec = self.read_bytes(address, 1);
+	match vec {
+	    Some(r) => Some(r[0]),
+	    None => None
+	}
+    }
+
+    pub fn read_bytes(&self, addr: u32, size: usize) -> Option<Vec<u8>> {
+        match self.find_section(addr) {
+            Some(sec) => sec.read_bytes(addr, size),
+            None => None,
+        }
+    }
+
+    /// Returns the total number of stored values.
+    pub fn size(&self) -> usize {
+        self.data.iter().map(|x| x.data.len()).sum()
+    }
+
+    /// number of segements. 
+    pub fn segement_count(&self) -> usize {
+        self.data.len()
+    }
+    
     // todo: can we merge these and the second one?
     fn find_section(&self, addr: u32) -> Option<&Section> {
         for i in self.data.iter() {
@@ -206,41 +284,8 @@ impl AddressSpace {
         }
     }
 
-    pub fn set_data(&mut self, addr: u32, data: u8) {
-        let section = self.find_section_mut(addr);
-        if section.is_some() {
-            section.unwrap().write_data(addr, data);
-        } else {
-            // quick test of neighboring data.
-            let mut skip_none = false;
-            if addr > 1 {
-                let sect2 = self.find_section_mut(addr - 1);
-                if sect2.is_some() {
-                    sect2.unwrap().push_data(data);
-                    skip_none = true;
-                }
-            }
-            if !skip_none {
-                let new_section = Section {
-                    start_addr: addr,
-                    data: vec![data],
-                };
-                self.insert_section(new_section);
-                // Two consolidates due to adding an entry into the middle of two sections.
-                self.consolidate();
-            }
-        }
-        self.consolidate();
-    }
 
-    pub fn write_data(&mut self, _addr: u32, _data: &Vec<u8>) { todo!() }
 
-    pub fn get_bytes(&self, addr: u32, size: usize) -> Option<Vec<u8>> {
-        match self.find_section(addr) {
-            Some(sec) => sec.read_data(addr, size),
-            None => None,
-        }
-    }
 }
 
 
@@ -407,7 +452,7 @@ mod tests  {
 
 
     #[test]
-    fn test_get_bytes() {
+    fn test_read() {
         let sec = Section {
             start_addr: 0,
             data: vec![2, 3, 4, 5],
@@ -425,7 +470,7 @@ mod tests  {
         };
 	address_space.consolidate();
 
-	let bytes = address_space.get_bytes(3, 4).unwrap();
+	let bytes = address_space.read_bytes(3, 4).unwrap();
 	assert_eq!(bytes, vec![5,2,3,4]);
     }
 
@@ -435,8 +480,15 @@ mod tests  {
             data: Vec::new(),
         };
 
-	let bytes = address_space.get_bytes(3, 4);
+	let bytes = address_space.read_bytes(3, 4);
 	assert!(bytes.is_none());
+    }
+
+    #[test]
+    fn test_insert_multi() {
+	let mut address_space = AddressSpace::new();
+	address_space.update(300, &vec![1,2,3,4,5]);
+	assert_eq!(address_space.read_bytes(300, 5).unwrap(), vec![1,2,3,4,5]);
     }
 
     #[test]
@@ -458,12 +510,12 @@ mod tests  {
         let mut address_space = AddressSpace {
             data: Vec::new(),
         };
-        address_space.set_data(1, 10);
-        address_space.set_data(0, 32);
-        address_space.set_data(3, 2);
+        address_space.update_byte(1, 10);
+        address_space.update_byte(0, 32);
+        address_space.update_byte(3, 2);
 
-        address_space.set_data(100, 30);
-        address_space.set_data(400, 20);
+        address_space.update_byte(100, 30);
+        address_space.update_byte(400, 20);
 
         let expected_values = vec![
             (0, vec![32, 10]),
@@ -477,4 +529,15 @@ mod tests  {
         }
     }
 
+    #[test]
+    fn size_checking() {
+	let mut address_space = AddressSpace::new();
+	assert_eq!(address_space.size(), 0);
+
+	address_space.update_byte(1, 2);
+	assert_eq!(address_space.size(), 1);
+
+	address_space.update_byte(5, 3);
+	assert_eq!(address_space.size(), 2);
+    }
 }
