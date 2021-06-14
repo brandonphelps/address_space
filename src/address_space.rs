@@ -138,16 +138,33 @@ impl AddressSpace {
         todo!()
     }
 
-    pub fn undefine(&mut self, address: u32, size: u32) {
+    pub fn undefine(&mut self, address: u32, size: usize) {
         todo!() // is this useful? 
     }
 
-    pub fn is_defined(&self, address: u32, size: u32) -> bool {
-        todo!()
+    pub fn is_defined(&self, address: u32, size: usize) -> bool {
+	match self.find_section(address) {
+	    Some(sec) => {
+		match sec.read_data(address, size)  {
+		    Some(r) => { true },
+		    None => { false },
+		}
+	    },
+	    None => { false }
+	}
     }
 
-    pub fn read(&self, address: u32) -> Result<u8, String> {
-        todo!()
+    /// Returns the byte for the given address, else None if no data is found at address
+    pub fn read(&self, address: u32) -> Option<u8> {
+	match self.find_section(address) {
+	    Some(sec) => {
+		match sec.read_data(address, 1) {
+		    Some(r) => Some(r[0]),
+		    None => None
+		}
+	    },
+	    None => None
+	}
     }
 
     pub fn read_vec(&self, address: u32, size: u32) -> Result<Vec<u8>, String> {
