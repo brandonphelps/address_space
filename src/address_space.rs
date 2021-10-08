@@ -166,7 +166,7 @@ impl AddressSpace {
 	}
     }
 
-    pub fn undefine(&mut self, address: u32, size: usize) {
+    pub fn undefine(&mut self, _address: u32, _size: usize) {
         todo!() // is this useful? 
     }
 
@@ -174,7 +174,7 @@ impl AddressSpace {
 	match self.find_section(address) {
 	    Some(sec) => {
 		match sec.read_bytes(address, size)  {
-		    Some(r) => { true },
+		    Some(_r) => { true },
 		    None => { false },
 		}
 	    },
@@ -472,6 +472,13 @@ mod tests  {
 
 	let bytes = address_space.read_bytes(3, 4).unwrap();
 	assert_eq!(bytes, vec![5,2,3,4]);
+    }
+
+    #[test]
+    fn test_read_undefined() {
+        let address_space = AddressSpace::new();
+        let p = address_space.read(2);
+        assert!(p.is_none());
     }
 
     #[test]
